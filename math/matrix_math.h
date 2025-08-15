@@ -51,7 +51,7 @@ struct matrix * transpose(struct matrix *m){
 void destroy_matrix(struct matrix *m){
     if(!m) return;
     free(m->grid);
-    m->data = NULL;
+    m->grid = NULL;
     free(m);
 }
 

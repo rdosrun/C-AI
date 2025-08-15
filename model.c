@@ -68,7 +68,8 @@ int main(int argc, char ** argv){
         if(probs){
             destroy_matrix(probs);
         }
-        probs = Softmax(logits);
+        Softmax(logits);
+        probs = logits;
 
     }
     print_matrix(output_layer);
