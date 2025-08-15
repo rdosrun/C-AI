@@ -19,7 +19,41 @@ void relu(struct matrix *m);
 void Sigmoid(struct matrix *m);
 void Softmax(struct matrix *m);
 void randomize(struct matrix *m);
+void destroy_matrix(struct matrix *m);
+struct matrix * transpose(struct matrix *m);
+void add_inplace(struct matrix *a, struct matrix *m);
 
+
+void add_inplace(struct matrix *a, struct matrix *m){
+    if(a->width != m->width || a->height != m->height){
+        printf("add_inplace: shape mismatch \n");
+        return;
+    }
+
+    for(int i =0;i<m->width*m->height;++i){
+        a->grid[i] += m->grid[i];
+    }
+
+}
+
+
+struct matrix * transpose(struct matrix *m){
+    struct matrix * tmp = matrix_init(m->width,m->height);
+    for(int i =0;i<m->height;++i){
+        for(int j=0;j<m->width;++j){
+            tmp->grid[j*tmp->width + i] = m->grid[i*m->width +j];
+        }
+    }
+    return tmp;
+}
+
+
+void destroy_matrix(struct matrix *m){
+    if(!m) return;
+    free(m->grid);
+    m->data = NULL;
+    free(m);
+}
 
 void randomize(struct matrix *m){
     srand(time(NULL));

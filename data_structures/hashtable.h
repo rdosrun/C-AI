@@ -12,8 +12,8 @@
 
 // ======= DATA STRUCTURES =======
 typedef struct {
-    char *key;
-    void *value;
+    char* key;
+    void * value;
     uint64_t count;
     int in_use;
 } HT_Entry;
