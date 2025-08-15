@@ -63,7 +63,7 @@ int main(int argc, char ** argv){
             destroy_matrix(logits);
         }
         logits = dot(weight,hidden_layer1);
-        add_inplace(logits, b);
+        add_inplace(logits, bias_term);
 
         if(probs){
             destroy_matrix(probs);
