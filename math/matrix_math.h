@@ -52,7 +52,7 @@ void Softmax(struct matrix *m){
 
 void print_matrix(struct matrix *m){
     for(int i =0;i<m->width*m->height;++i){
-        printf(" %d ",m->grid[i]);
+        printf(" %f ",m->grid[i]);
         if((i+1)%m->width==0){
             printf("\n");
         }
@@ -80,7 +80,7 @@ struct matrix * dot(struct matrix * m1, struct matrix * m2){
     struct matrix * m3 = matrix_init(height1,width2);
 
     //processing
-    int tmp =0;
+    double tmp =0;
     int i =0;
     int j =0;
     for(i =0; i<height1*width2;++i){
