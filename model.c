@@ -5,7 +5,7 @@
 #define VOCAB_SIZE 100
 #define EMBEDDING_SIZE  100
 #define TRAINING_ITR  5
-#define INPUT_FILE "input.txt"
+#define INPUT_FILE "fizzbuzz.txt"
 
 
 int main(int argc, char ** argv){
@@ -19,17 +19,19 @@ int main(int argc, char ** argv){
     struct matrix * bias_term = matrix_init(VOCAB_SIZE,EMBEDDING_SIZE);
 
     randomize(hidden_layer1);
-    randomize(input_layer);
+    // randomize(input_layer);
     //training loop
 
 
     hashtable = tokenize(INPUT_FILE);
+
 
     for(int i =0;i<TRAINING_ITR;++i){
         //forward prop
         output_layer = dot(hidden_layer1,input_layer);
         relu(output_layer);
         Softmax(output_layer);
+
     }
     print_matrix(output_layer);
 
