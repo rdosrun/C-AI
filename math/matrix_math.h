@@ -49,9 +49,14 @@ struct matrix * transpose(struct matrix *m){
 
 
 void destroy_matrix(struct matrix *m){
+    printf("destroy matrix\n");
     if(!m) return;
-    free(m->grid);
-    m->grid = NULL;
+    printf("matrix not NULL \n");
+    if(m->grid){
+    printf("destroy matrix\n");
+        free(m->grid);
+        m->grid = NULL;
+    }
     free(m);
 }
 
@@ -96,10 +101,14 @@ void print_matrix(struct matrix *m){
 
 
 struct matrix * matrix_init(int height, int width){
-    struct matrix * m = malloc(sizeof(struct matrix));
+    struct matrix * m = malloc(sizeof(struct matrix ));
     m->height = height;
     m->width = width;
     m->grid = malloc(sizeof(double)* width *height);
+    printf("grid init\n");
+    for(int i =0;i<height*width;++i){
+        m->grid[i] = 0;
+    }
     return m;
 }
 
@@ -110,9 +119,11 @@ struct matrix * dot(struct matrix * m1, struct matrix * m2){
     int width1 = m1 ->width;
     int height2 = m2->height;
     int width2 = m2->width;
+    printf("init dims\n");
 
     struct matrix * m3 = matrix_init(height1,width2);
 
+    printf("processing \n");
     //processing
     double tmp =0;
     int i =0;
@@ -122,7 +133,7 @@ struct matrix * dot(struct matrix * m1, struct matrix * m2){
         int m2_offset = i%width2;
         tmp = 0;
         for(j =0; j<height2;++j){
-            tmp = tmp + (m1->grid[j+m1_offset]*m2->grid[(j*width2)+m2_offset]);
+           tmp = tmp + (m1->grid[j+m1_offset]*m2->grid[(j*width2)+m2_offset]);
         }
         m3->grid[i] = tmp;
         tmp =0;
