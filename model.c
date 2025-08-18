@@ -50,40 +50,49 @@ int main(int argc, char ** argv){
 
     hashtable = tokenize(INPUT_FILE);
     fill_matrix_with_hashtable(hashtable,input_layer);
-
+    //print_matrix(input_layer);
     printf("Starting training\n");
     for(int i =0;i<TRAINING_ITR;++i){
         //forward prop
-        printf("=======loop %d========",i);
+        printf("=======loop %d========\n",i);
+        printf("  ====forward prop====\n");
         if (hidden_layer1){
             destroy_matrix(hidden_layer1);
+            hidden_layer1 = NULL;
         }
         printf("transpose\n");
         hidden_layer1 = dot(transpose(embedding_layer),input_layer);
         relu(hidden_layer1);
         printf("completed relu\n");
-
         if(logits){
             destroy_matrix(logits);
+            logits = NULL;
         }
         printf("dot\n");
         logits = dot(weight,hidden_layer1);
-        printf("add_inplace\n");
         add_inplace(logits, bias_term);
         printf("completed bias term\n");
 
         if(probs){
             destroy_matrix(probs);
+            probs = NULL;
         }
-        probs = logits;
-        Softmax(probs);
+        Softmax(logits);
         printf("completed Softmax \n");
+
+        print_matrix(logits);
+
+
+        //back prop
+        printf("  ====back prop====\n");
+
+
 
     }
 
     printf("Completed training \n");
 
-    print_matrix(output_layer);
+    print_matrix(logits);
 
 
     //execution
@@ -97,8 +106,7 @@ int main(int argc, char ** argv){
     printf("freeing bias_term\n");
     destroy_matrix(bias_term);
     destroy_matrix(hidden_layer1);
-    destroy_matrix(probs);
-    destroy_matrix(output_layer);
+    //destroy_matrix(output_layer);
 
 
 

@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 // ======= CONFIG =======
 // Load factor before resize (0.70 = 70%)
@@ -72,6 +73,7 @@ static inline int ht_set(HashTable *ht, const char *key, void *value) {
         if (strcmp(ht->entries[idx].key, key) == 0) {
             ht->entries[idx].value = value;
             ++ht->entries[idx].count;
+            //printf("count: %d",ht->entries[idx].count);
             return 1;
         }
         idx = (idx + 1) % ht->capacity;

@@ -49,11 +49,8 @@ struct matrix * transpose(struct matrix *m){
 
 
 void destroy_matrix(struct matrix *m){
-    printf("destroy matrix\n");
     if(!m) return;
-    printf("matrix not NULL \n");
     if(m->grid){
-    printf("destroy matrix\n");
         free(m->grid);
         m->grid = NULL;
     }
@@ -81,11 +78,18 @@ void Sigmoid(struct matrix *m){
 
 void Softmax(struct matrix *m){
     double sum = 0;
+    double max = 0;
     for(int i =0; i<m->width*m->height;++i){
-        sum = sum + exp(m->grid[i]);
+        if(m->grid[i]>max){
+            max = m->grid[i];
+        }
     }
     for(int i =0; i<m->width*m->height;++i){
-        m->grid[i] = exp(m->grid[i])/sum;
+        m->grid[i] = exp(m->grid[i]-max);
+        sum = sum + m->grid[i];
+    }
+    for(int i =0; i<m->width*m->height;++i){
+        m->grid[i] = m->grid[i]/sum;
     }
 }
 
@@ -105,12 +109,13 @@ struct matrix * matrix_init(int height, int width){
     m->height = height;
     m->width = width;
     m->grid = malloc(sizeof(double)* width *height);
-    printf("grid init\n");
     for(int i =0;i<height*width;++i){
         m->grid[i] = 0;
     }
     return m;
 }
+
+
 
 
 struct matrix * dot(struct matrix * m1, struct matrix * m2){
@@ -119,11 +124,16 @@ struct matrix * dot(struct matrix * m1, struct matrix * m2){
     int width1 = m1 ->width;
     int height2 = m2->height;
     int width2 = m2->width;
-    printf("init dims\n");
+
+    if (width1 != height2) {
+        fprintf(stderr, "dot: shape mismatch (%dx%d) · (%dx%d)\n",
+                height1, width1, height2, width2);
+        return NULL;
+    }
+
 
     struct matrix * m3 = matrix_init(height1,width2);
 
-    printf("processing \n");
     //processing
     double tmp =0;
     int i =0;
