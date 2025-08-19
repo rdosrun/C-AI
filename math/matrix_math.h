@@ -22,6 +22,27 @@ void randomize(struct matrix *m);
 void destroy_matrix(struct matrix *m);
 struct matrix * transpose(struct matrix *m);
 void add_inplace(struct matrix *a, struct matrix *m);
+struct matrix *  matrix_copy(struct matrix *m);
+struct matrix * encode_input(int n, int max_bits);
+
+
+
+struct matrix * encode_input(int n, int max_bits){
+    struct matrix * m = matrix_init(max_bits,1);
+    int i =0;
+    while(n>0){
+        m->grid[i++] = n%2;
+        n /= 2;
+    }
+    return m;
+}
+
+
+struct matrix * matrix_copy(struct matrix *m){
+    struct matrix * a = matrix_init(m->height,m->width);
+    memcpy(a->grid,m->grid,sizeof(double) * (m->height) * (m->width));
+    return a;
+}
 
 
 void add_inplace(struct matrix *a, struct matrix *m){

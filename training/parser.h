@@ -13,7 +13,7 @@ char ** parse(char * filename){
     int line_count =0;
     while(fgets(buffer,sizeof(buffer),fptr)){
         for(int i =0;i<1024&&buffer[i]!='\0';++i){
-            if((buffer[i] == ' ' || buffer[i] =='\n') && tmp_count>0){
+            if((buffer[i] =='\n') && tmp_count>0){
                 word_list[line_count] = malloc(sizeof(char)*(tmp_count+1));
                 memcpy(word_list[line_count],tmp,tmp_count*sizeof(char));
                 memset(tmp,'\0',sizeof(char)*(1024));
