@@ -21,10 +21,25 @@ void Softmax(struct matrix *m);
 void randomize(struct matrix *m);
 void destroy_matrix(struct matrix *m);
 struct matrix * transpose(struct matrix *m);
-void add_inplace(struct matrix *a, struct matrix *m);
+struct matrix * add_inplace(struct matrix *a, struct matrix *m);
 struct matrix *  matrix_copy(struct matrix *m);
 struct matrix * encode_input(int n, int max_bits);
+struct matrix * sub_inplace(struct matrix *a, struct matrix *m);
 
+
+struct matrix * sub_inplace(struct matrix *a, struct matrix *m){
+    if(a->width != m->width || a->height != m->height){
+        printf("add_inplace: shape mismatch \n");
+        return NULL;
+    }
+    struct matrix * b = matrix_init(m->height,m->width);
+
+    for(int i =0;i<m->width*m->height;++i){
+        b->grid[i] = a->grid[i] - m->grid[i];
+    }
+    return b;
+
+}
 
 
 struct matrix * encode_input(int n, int max_bits){
@@ -45,16 +60,18 @@ struct matrix * matrix_copy(struct matrix *m){
 }
 
 
-void add_inplace(struct matrix *a, struct matrix *m){
+struct matrix * add_inplace(struct matrix *a, struct matrix *m){
     if(a->width != m->width || a->height != m->height){
+        printf("width %d , height %d | width %d ,height %d\n", a->width,a->height,m->width,m->height);
         printf("add_inplace: shape mismatch \n");
-        return;
+        return NULL;
     }
+    struct matrix * b = matrix_init(m->height,m->width);
 
     for(int i =0;i<m->width*m->height;++i){
-        a->grid[i] += m->grid[i];
+        b->grid[i] = a->grid[i] + m->grid[i];
     }
-
+    return b;
 }
 
 

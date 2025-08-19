@@ -2,8 +2,8 @@
 #include "./math/matrix_math.h"
 #include "./training/tokenization.h"
 
-#define VOCAB_SIZE 200000
-#define EMBEDDING_SIZE  100
+#define VOCAB_SIZE 32
+#define EMBEDDING_SIZE  1
 #define CLASS_COUNT 4
 #define TRAINING_ITR  5
 #define INPUT_FILE "fizzbuzz.txt"
@@ -67,6 +67,14 @@ int main(int argc, char ** argv){
     struct matrix * output_layer;
 
 
+    struct matrix * dlogits =NULL;
+    struct matrix * dW = NULL;
+    struct matrix * db = NULL;
+    struct matrix * dh = NULL;
+
+    struct matrix * dh_pre = NULL;
+
+
     randomize(embedding_layer);
     randomize(weight);
     //training loop
@@ -78,11 +86,12 @@ int main(int argc, char ** argv){
     printf("Starting training\n");
     for(int i =0;i<TRAINING_ITR;++i){
         //data set loop
+        //
         printf("=======loop %d========\n",i);
-        for(int j =0;j<input_layer->height*input_layer->width;++j){
+        for(int j =0;j<10000;++j){
                //forward prop
             printf("  ====forward prop====\n");
-
+            input_layer = encode_input(j,32);
             if (hidden_layer1){
                 destroy_matrix(hidden_layer1);
                 hidden_layer1 = NULL;
@@ -97,24 +106,26 @@ int main(int argc, char ** argv){
             }
             printf("dot\n");
             logits = dot(weight,hidden_layer1);
-            add_inplace(logits, bias_term);
-            printf("completed bias term\n");
-
             if(probs){
                 destroy_matrix(probs);
                 probs = NULL;
             }
-            Softmax(logits);
+            probs = add_inplace(logits, bias_term);
+            printf("completed bias term\n");
+
+            Softmax(probs);
             printf("completed Softmax \n");
 
-            probs = matrix_copy(logits);
-            printf("completed matrix copy\n");
             print_matrix(probs);
 
             struct matrix * one_hot = generate_answer(j);
 
             //back prop
             printf("  ====back prop====\n");
+            dlogits = sub_inplace(probs,one_hot);
+            dW = dot(dlogits,transpose(hidden_layer1));
+            dh = dot(transpose(weight),dlogits);
+
 
 
         }
