@@ -3,9 +3,9 @@
 #include "./training/tokenization.h"
 
 #define VOCAB_SIZE 32
-#define EMBEDDING_SIZE  1
+#define EMBEDDING_SIZE  4
 #define CLASS_COUNT 4
-#define TRAINING_ITR  500
+#define TRAINING_ITR  5
 #define INPUT_FILE "fizzbuzz.txt"
 #define LR .01
 
@@ -93,7 +93,7 @@ int main(int argc, char ** argv){
         for(int j =0;j<10000;++j){
                //forward prop
             //printf("  ====forward prop====\n");
-            input_layer = encode_input(j,32);
+            input_layer = encode_input(j,VOCAB_SIZE);
             if (hidden_layer1){
                 destroy_matrix(hidden_layer1);
                 hidden_layer1 = NULL;
@@ -124,7 +124,7 @@ int main(int argc, char ** argv){
 
             double eps = 1e-12, L = 0.0;
             for (int c = 0; c < CLASS_COUNT; ++c)
-                if (one_hot->grid[c] > 0.0) L -= log(logits->grid[c] + eps);
+                if (one_hot->grid[c] > 0.0) L -= log(probs->grid[c] + eps);
             loss_sum += L;
 
             //back prop
@@ -132,19 +132,23 @@ int main(int argc, char ** argv){
             dlogits = sub_inplace(probs,one_hot);
             dW = dot(dlogits,transpose(hidden_layer1));
             dh = dot(transpose(weight),dlogits);
-            relu(dh);
+            inverse_relu(dh);
             //printf("====== completed back prop=========\n");
 
 
-            for (size_t i = 0, nW = (size_t)weight->height * weight->width; i < nW; ++i)
-                weight->grid[i] -= LR  * dW->grid[i];
+            for (size_t k = 0, nW = (size_t)weight->height * weight->width; k < nW; ++k)
+                weight->grid[k] -= LR  * dW->grid[k];
 
 
             //printf("====== updated weight=========\n");
             // b -= LR * db
-            for (int i = 0; i < CLASS_COUNT; ++i)
-                bias_term->grid[i] -= LR * dlogits->grid[i];
+            for (int k = 0; k < CLASS_COUNT; ++k)
+                bias_term->grid[k] -= LR * dlogits->grid[k];
 
+            int hot = j % VOCAB_SIZE;  // must match encode_input(j,32)
+            for (int d = 0; d < embedding_layer->width; ++d){
+                embedding_layer->grid[hot * embedding_layer->width + d] -= LR * dh->grid[d];
+            }
 
         }
         printf("avg loss: %.6f\n",  loss_sum / 10000);

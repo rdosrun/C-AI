@@ -16,6 +16,7 @@ struct matrix * dot(struct matrix * m1, struct matrix * m2);
 struct matrix * matrix_init(int height,int width);
 void print_matrix(struct matrix *m);
 void relu(struct matrix *m);
+void inverse_relu(struct matrix *m);
 void Sigmoid(struct matrix *m);
 void Softmax(struct matrix *m);
 void randomize(struct matrix *m);
@@ -107,6 +108,15 @@ void relu(struct matrix *m){
         m->grid[i] = m->grid[i] > 0 ? m->grid[i]:0;
     }
 }
+
+
+void inverse_relu(struct matrix *m){
+    for(int i =0; i<m->width*m->height;++i){
+        m->grid[i] = m->grid[i] < 0 ? m->grid[i]:0;
+    }
+}
+
+
 
 void Sigmoid(struct matrix *m){
     for(int i =0; i<m->width*m->height;++i){
