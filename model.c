@@ -70,12 +70,9 @@ int main(void) {
     printf("Starting training\n");
 
     // Parameters
-    // Embedding E: [VOCAB_SIZE x EMBEDDING_SIZE]
     struct matrix *E  = matrix_init(VOCAB_SIZE, EMBEDDING_SIZE);
-    // Hidden layer W1,b1: [HIDDEN_SIZE x EMBEDDING_SIZE], [HIDDEN_SIZE x 1]
     struct matrix *W1 = matrix_init(HIDDEN_SIZE, EMBEDDING_SIZE);
     struct matrix *b1 = matrix_init(HIDDEN_SIZE, 1);
-    // Output layer W2,b2: [CLASS_COUNT x HIDDEN_SIZE], [CLASS_COUNT x 1]
     struct matrix *W2 = matrix_init(CLASS_COUNT, HIDDEN_SIZE);
     struct matrix *b2 = matrix_init(CLASS_COUNT, 1);
 
@@ -83,63 +80,51 @@ int main(void) {
     randomize(E);
     randomize(W1);
     randomize(W2);
-    // b1 and b2 default to zero (fine)
 
     // Work buffers (reused each step)
     struct matrix *x       = matrix_init(VOCAB_SIZE, 1);      // input one-hot
     struct matrix *y       = matrix_init(CLASS_COUNT, 1);     // target one-hot
-    struct matrix *ET      = NULL;                            // E^T
-    struct matrix *h_emb   = NULL;                            // [EMBEDDING_SIZE x 1]
-    struct matrix *z1      = NULL;                            // pre-activation hidden [H x 1]
-    struct matrix *a1      = NULL;                            // post-ReLU hidden [H x 1]
-    struct matrix *logits  = NULL;                            // [C x 1], reused as probs after Softmax
 
-    // Grad buffers (allocate new each iter or reuse; here we reuse where possible)
-    struct matrix *dlogits = matrix_init(CLASS_COUNT, 1);     // [C x 1]
-    struct matrix *dW2     = NULL;                            // [C x H]
-    struct matrix *db2     = matrix_init(CLASS_COUNT, 1);     // [C x 1]
-    struct matrix *da1     = NULL;                            // [H x 1]
-    struct matrix *dW1     = NULL;                            // [H x D1]
-    struct matrix *db1g    = matrix_init(HIDDEN_SIZE, 1);     // [H x 1]
-    struct matrix *dh_emb  = NULL;                            // [D1 x 1]
+    // Grad buffers
+    struct matrix *dlogits = matrix_init(CLASS_COUNT, 1);
+    struct matrix *db2     = matrix_init(CLASS_COUNT, 1);
+    struct matrix *db1g    = matrix_init(HIDDEN_SIZE, 1);
 
     for (int epoch = 0; epoch < TRAINING_ITR; ++epoch) {
         double loss_sum = 0.0;
         printf("=======loop %d========\n", epoch);
 
+        // FIX: Transpose E once per epoch for efficiency.
+        struct matrix *ET = transpose(E); // [D1 x V]
+
         for (int n = 0; n < MAX_N; ++n) {
             // --------- Encode one sample ---------
-            encode_input_inplace(x, n);         // x: [V x 1], one-hot at n%V
-            target_one_hot_inplace(y, n);       // y: [C x 1]
+            encode_input_inplace(x, n);
+            target_one_hot_inplace(y, n);
 
             // --------- Forward pass ---------
             // h_emb = ReLU( E^T · x )
-            if (ET) { destroy_matrix(ET);}
-            ET    = transpose(E);               // [D1 x V]
-            if (h_emb) {
-                destroy_matrix(h_emb); }
-            h_emb = dot(ET, x);                 // [D1 x 1]
+            struct matrix *h_emb = dot(ET, x);  // [D1 x 1]
             relu(h_emb);                        // in-place
+
             // a1 = ReLU( W1 · h_emb + b1 )
-            if (z1) { destroy_matrix(z1); }
-            z1 = dot(W1, h_emb);                // [H x 1]
-            add_inplace(z1, b1);                // +b1
-            a1 = z1;                            // alias (reuse buffer)
+            // FIX: Removed confusing z1/a1 alias. Use 'a1' for the whole operation.
+            struct matrix *a1 = dot(W1, h_emb); // [H x 1]
+            add_inplace(a1, b1);                // +b1
             relu(a1);                           // in-place
 
             // logits = W2 · a1 + b2
-            if (logits) { destroy_matrix(logits); }
-            logits = dot(W2, a1);               // [C x 1]
-            add_inplace(logits, b2);            // +b2
-            //print_matrix(logits);
+            struct matrix *logits = dot(W2, a1); // [C x 1]
+            add_inplace(logits, b2);             // +b2
 
             // probs = softmax(logits) (in-place)
             Softmax(logits);
-            struct matrix *probs = logits;
+            struct matrix *probs = logits; // Alias for clarity
             if(epoch+1 == TRAINING_ITR){
                 printf("guess for %d\n",n);
                 print_matrix(probs);
             }
+
             // loss (cross-entropy)
             double L = 0.0, eps = 1e-12;
             for (int c = 0; c < CLASS_COUNT; ++c) {
@@ -147,20 +132,14 @@ int main(void) {
             }
             loss_sum += L;
 
-
-
             // --------- Backward pass ---------
             // dlogits = probs - y
-            // (use your in-place subtract)
-            // NOTE: sub_inplace modifies 'probs' buffer; safe since we won't use probs again this iter.
-            sub_inplace(probs, y);              // probs := probs - y
-            // Copy into dlogits (or just treat probs as dlogits)
+            sub_inplace(probs, y);
             memcpy(dlogits->grid, probs->grid, (size_t)CLASS_COUNT * sizeof *dlogits->grid);
 
             // dW2 = dlogits · a1^T
             struct matrix *a1T = transpose(a1);
-            if (dW2) { destroy_matrix(dW2); dW2 = NULL; }
-            dW2 = dot(dlogits, a1T);            // [C x H]
+            struct matrix *dW2 = dot(dlogits, a1T);
             destroy_matrix(a1T);
 
             // db2 = dlogits
@@ -168,8 +147,7 @@ int main(void) {
 
             // da1 = W2^T · dlogits
             struct matrix *W2T = transpose(W2);
-            if (da1) { destroy_matrix(da1); da1 = NULL; }
-            da1 = dot(W2T, dlogits);            // [H x 1]
+            struct matrix *da1 = dot(W2T, dlogits);
             destroy_matrix(W2T);
 
             // ReLU backprop at a1: da1 *= (a1 > 0)
@@ -179,8 +157,7 @@ int main(void) {
 
             // dW1 = da1 · h_emb^T
             struct matrix *hEmbT = transpose(h_emb);
-            if (dW1) { destroy_matrix(dW1); dW1 = NULL; }
-            dW1 = dot(da1, hEmbT);              // [H x D1]
+            struct matrix *dW1 = dot(da1, hEmbT);
             destroy_matrix(hEmbT);
 
             // db1 = da1
@@ -188,49 +165,45 @@ int main(void) {
 
             // dh_emb = W1^T · da1
             struct matrix *W1T = transpose(W1);
-            if (dh_emb) { destroy_matrix(dh_emb); dh_emb = NULL; }
-            dh_emb = dot(W1T, da1);             // [D1 x 1]
+            struct matrix *dh_emb = dot(W1T, da1);
             destroy_matrix(W1T);
 
-            // ReLU backprop at h_emb: dh_emb *= (h_emb > 0)  (we used ReLU on h_emb)
+            // ReLU backprop at h_emb
             for (int k = 0; k < EMBEDDING_SIZE; ++k) {
                 if (!(h_emb->grid[k] > 0.0)) dh_emb->grid[k] = 0.0;
             }
 
             // --------- SGD updates ---------
             // W2 -= LR * dW2 ; b2 -= LR * db2
-            {
-                size_t nW2 = (size_t)W2->height * (size_t)W2->width;
-                for (size_t t = 0; t < nW2; ++t) W2->grid[t] -= LR * dW2->grid[t];
-                for (int c = 0; c < CLASS_COUNT; ++c) b2->grid[c] -= LR * db2->grid[c];
-            }
+            size_t nW2 = (size_t)W2->height * (size_t)W2->width;
+            for (size_t t = 0; t < nW2; ++t) W2->grid[t] -= LR * dW2->grid[t];
+            for (int c = 0; c < CLASS_COUNT; ++c) b2->grid[c] -= LR * db2->grid[c];
 
             // W1 -= LR * dW1 ; b1 -= LR * db1
-            {
-                size_t nW1 = (size_t)W1->height * (size_t)W1->width;
-                for (size_t t = 0; t < nW1; ++t) W1->grid[t] -= LR * dW1->grid[t];
-                for (int h = 0; h < HIDDEN_SIZE; ++h) b1->grid[h] -= LR * db1g->grid[h];
-            }
+            size_t nW1 = (size_t)W1->height * (size_t)W1->width;
+            for (size_t t = 0; t < nW1; ++t) W1->grid[t] -= LR * dW1->grid[t];
+            for (int h = 0; h < HIDDEN_SIZE; ++h) b1->grid[h] -= LR * db1g->grid[h];
 
-            // Embedding sparse update: only the row actually used in x
+            // Embedding sparse update
             int hot = find_hot_index(x);
             if (hot >= 0) {
-                // E[hot, :] -= LR * dh_emb[:]
                 for (int d = 0; d < EMBEDDING_SIZE; ++d)
                     E->grid[hot * EMBEDDING_SIZE + d] -= LR * dh_emb->grid[d];
             }
 
-            // --------- cleanup per-sample temps ---------
-            // a1 is alias of z1, don't free twice. We free z1 at end of iter.
-            // probs/logits has been mutated; destroy at end of iter.
-            //destroy_matrix(logits);   logits = NULL;
-            //destroy_matrix(z1);       z1 = NULL;
-            // keep h_emb and x; they are recreated every iter, so we also free here:
-            //destroy_matrix(h_emb);    h_emb = NULL;
-            // x and y are reused buffers allocated once; do NOT destroy here
-            //printf("guess for %d\n",n);
-            //print_matrix(probs);
+            // FIX: Clean up all temporary matrices at the END of the iteration.
+            // This prevents memory leaks.
+            destroy_matrix(h_emb);
+            destroy_matrix(a1);
+            destroy_matrix(logits); // also frees 'probs'
+            destroy_matrix(dW2);
+            destroy_matrix(da1);
+            destroy_matrix(dW1);
+            destroy_matrix(dh_emb);
         }
+
+        // FIX: Free the transposed E matrix at the end of the epoch.
+        destroy_matrix(ET);
         printf("avg loss: %.6f\n", loss_sum / (double)MAX_N);
     }
 
@@ -238,18 +211,11 @@ int main(void) {
     destroy_matrix(E);
     destroy_matrix(W1); destroy_matrix(b1);
     destroy_matrix(W2); destroy_matrix(b2);
-
     destroy_matrix(x);
     destroy_matrix(y);
-
     destroy_matrix(dlogits);
-    if (dW2) destroy_matrix(dW2);
     destroy_matrix(db2);
-    if (da1) destroy_matrix(da1);
-    if (dW1) destroy_matrix(dW1);
     destroy_matrix(db1g);
-    if (dh_emb) destroy_matrix(dh_emb);
 
     return 0;
 }
-
