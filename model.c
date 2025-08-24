@@ -22,11 +22,11 @@
 #endif
 
 #ifndef TRAINING_ITR
-#define TRAINING_ITR    10      // epochs
+#define TRAINING_ITR    1000      // epochs
 #endif
 
 #ifndef LR
-#define LR              1e-2   // learning rate
+#define LR              5e-2   // learning rate
 #endif
 
 #ifndef MAX_N
