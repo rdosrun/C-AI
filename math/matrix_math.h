@@ -2,11 +2,12 @@
 #include "time.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "float.h"
 
 //create a matrix for each color channel
 struct matrix{
-    int width;
-    int height;
+    long width;
+    long height;
     double * grid;
 };
 
@@ -22,28 +23,64 @@ void Softmax(struct matrix *m);
 void randomize(struct matrix *m);
 void destroy_matrix(struct matrix *m);
 struct matrix * transpose(struct matrix *m);
-struct matrix * add_inplace(struct matrix *a, struct matrix *m);
+void add_inplace(struct matrix *a, struct matrix *m);
 struct matrix *  matrix_copy(struct matrix *m);
 struct matrix * encode_input(int n, int max_bits);
-struct matrix * sub_inplace(struct matrix *a, struct matrix *m);
+void sub_inplace(struct matrix *a, struct matrix *m);
+struct matrix * mult_const(struct matrix *m, double a);
+double matrix_sum(struct matrix *m);
 
 
-struct matrix * sub_inplace(struct matrix *a, struct matrix *m){
-    if(a->width != m->width || a->height != m->height){
-        printf("add_inplace: shape mismatch \n");
-        return NULL;
+
+double matrix_sum(struct matrix *m){
+    double total = 0.0;
+    for(int i = 0;i<m->height*m->width;++i){
+        total += m->grid[i];
     }
-    struct matrix * b = matrix_init(m->height,m->width);
-
-    for(int i =0;i<m->width*m->height;++i){
-        b->grid[i] = a->grid[i] - m->grid[i];
-    }
-    return b;
+    return total;
 
 }
 
 
+struct matrix *  mult_const(struct matrix *m, double a){
+    struct matrix * b = matrix_init(m->height,m->width);
+    for(int i = 0;i<m->width*m->height;++i){
+        b->grid[i] *= m->grid[i] *a;
+    }
+    return b;
+}
+
+
+void  sub_inplace(struct matrix *a, struct matrix *m){
+    if(a->width != m->width || a->height != m->height){
+        printf("add_inplace: shape mismatch \n");
+        return ;
+    }
+
+    for(int i =0;i<m->width*m->height;++i){
+        a->grid[i] -= m->grid[i];
+    }
+
+}
+
 struct matrix * encode_input(int n, int max_bits){
+    struct matrix * m = matrix_init(max_bits,1);
+
+    // zero out everything
+    for (int i = 0; i < max_bits; i++) {
+        m->grid[i] = 0.0;
+    }
+
+    // fill from most significant bit down
+    for (int i = max_bits - 1; i >= 0 && n > 0; i--) {
+        m->grid[i] = n % 2;
+        n /= 2;
+    }
+
+    return m;
+}
+
+/*struct matrix * encode_input(int n, int max_bits){
     struct matrix * m = matrix_init(max_bits,1);
     int i =0;
     while(n>0){
@@ -51,7 +88,7 @@ struct matrix * encode_input(int n, int max_bits){
         n /= 2;
     }
     return m;
-}
+}*/
 
 
 struct matrix * matrix_copy(struct matrix *m){
@@ -61,18 +98,16 @@ struct matrix * matrix_copy(struct matrix *m){
 }
 
 
-struct matrix * add_inplace(struct matrix *a, struct matrix *m){
+void add_inplace(struct matrix *a, struct matrix *m){
     if(a->width != m->width || a->height != m->height){
         printf("width %d , height %d | width %d ,height %d\n", a->width,a->height,m->width,m->height);
         printf("add_inplace: shape mismatch \n");
-        return NULL;
+        return ;
     }
-    struct matrix * b = matrix_init(m->height,m->width);
 
     for(int i =0;i<m->width*m->height;++i){
-        b->grid[i] = a->grid[i] + m->grid[i];
+        a->grid[i] += m->grid[i];
     }
-    return b;
 }
 
 
@@ -112,7 +147,7 @@ void relu(struct matrix *m){
 
 void inverse_relu(struct matrix *m){
     for(int i =0; i<m->width*m->height;++i){
-        m->grid[i] = m->grid[i] < 0 ? m->grid[i]:0;
+        m->grid[i] = m->grid[i] > 0 ? 1:0;
     }
 }
 
@@ -124,7 +159,18 @@ void Sigmoid(struct matrix *m){
     }
 }
 
-void Softmax(struct matrix *m){
+void Softmax(struct matrix *m) {
+    const int N = m->height * m->width;
+    if (N <= 0) return;
+    double maxv = -INFINITY;
+    for (int i=0;i<N;++i) if (m->grid[i] > maxv) maxv = m->grid[i];
+    double sum = 0.0;
+    for (int i=0;i<N;++i) { m->grid[i] = exp(m->grid[i] - maxv); sum += m->grid[i]; }
+    double inv = 1.0 / (sum > 0.0 ? sum : 1e-300); // avoid /0 but no uniform jump
+    for (int i=0;i<N;++i) m->grid[i] *= inv;
+}
+
+/*void Softmax(struct matrix *m){
     double sum = 0;
     double max = 0;
     for(int i =0; i<m->width*m->height;++i){
@@ -139,11 +185,11 @@ void Softmax(struct matrix *m){
     for(int i =0; i<m->width*m->height;++i){
         m->grid[i] = m->grid[i]/sum;
     }
-}
+}*/
 
 void print_matrix(struct matrix *m){
     for(int i =0;i<m->width*m->height;++i){
-        printf(" %f ",m->grid[i]);
+        printf("%d %f ",i,m->grid[i]);
         if((i+1)%m->width==0){
             printf("\n");
         }
