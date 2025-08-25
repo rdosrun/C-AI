@@ -159,7 +159,33 @@ void Sigmoid(struct matrix *m){
     }
 }
 
+// Example of a numerically stable Softmax
 void Softmax(struct matrix *m) {
+    // Find the maximum value in the matrix (logits)
+    int length = m->height * m->width;
+    for(int j =0;j<length;j=j+m->height){
+        double max_val = 0.0;
+        for (int i = 1; i < m->width; i++) {
+            if (m->grid[i+j] > max_val) {
+                max_val = m->grid[i+j];
+            }
+        }
+
+        // Subtract max for stability, then exponentiate and sum
+        double sum = 0.0;
+        for (int i = 0; i < m->width; i++) {
+            m->grid[i+j] = exp(m->grid[i+j] - max_val);
+            sum += m->grid[i+j];
+        }
+
+        // Normalize
+        for (int i = 0; i < m->width; i++) {
+            m->grid[i+j] /= sum;
+        }
+    }
+}
+
+/*void Softmax(struct matrix *m) {
     const int N = m->height * m->width;
     if (N <= 0) return;
     double maxv = -INFINITY;
@@ -169,7 +195,7 @@ void Softmax(struct matrix *m) {
     double inv = 1.0 / (sum > 0.0 ? sum : 1e-300); // avoid /0 but no uniform jump
     for (int i=0;i<N;++i) m->grid[i] *= inv;
 }
-
+*/
 /*void Softmax(struct matrix *m){
     double sum = 0;
     double max = 0;

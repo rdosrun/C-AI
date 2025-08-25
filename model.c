@@ -22,7 +22,7 @@
 #endif
 
 #ifndef TRAINING_ITR
-#define TRAINING_ITR    1000      // epochs
+#define TRAINING_ITR    10      // epochs
 #endif
 
 #ifndef LR
@@ -30,7 +30,7 @@
 #endif
 
 #ifndef MAX_N
-#define MAX_N           31  // train on numbers 0..MAX_N-1
+#define MAX_N           1000  // train on numbers 0..MAX_N-1
 #endif
 
 // ---------- helpers (no external deps beyond your matrix ops) ----------
