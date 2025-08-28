@@ -4,17 +4,19 @@
 #include "./math/matrix_math.h"   // your matrix API (matrix_init, dot, transpose, relu, Softmax, ...)
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
+#include <time.h>
 
 #ifndef CLASS_COUNT
 #define CLASS_COUNT     4      // number, fizz, buzz, fizzbuzz
 #endif
 
 #ifndef VOCAB_SIZE
-#define VOCAB_SIZE      15     // mod-15 is sufficient for FizzBuzz information
+#define VOCAB_SIZE      16     // mod-15 is sufficient for FizzBuzz information
 #endif
 
 #ifndef EMBEDDING_SIZE
-#define EMBEDDING_SIZE  15     // D1: size after embedding
+#define EMBEDDING_SIZE  100   // D1: size after embedding
 #endif
 
 #ifndef HIDDEN_SIZE
@@ -22,7 +24,7 @@
 #endif
 
 #ifndef TRAINING_ITR
-#define TRAINING_ITR    10      // epochs
+#define TRAINING_ITR    100      // epochs
 #endif
 
 #ifndef LR
@@ -30,8 +32,19 @@
 #endif
 
 #ifndef MAX_N
-#define MAX_N           1000  // train on numbers 0..MAX_N-1
+#define MAX_N           100  // train on numbers 0..MAX_N-1
 #endif
+
+
+
+
+// Fisher–Yates shuffle of an index array
+static inline void shuffle_idx(int *a, int n) {
+    for (int i = n - 1; i > 0; --i) {
+        int j = rand() % (i + 1);
+        int t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+}
 
 // ---------- helpers (no external deps beyond your matrix ops) ----------
 
@@ -93,12 +106,15 @@ int main(void) {
     for (int epoch = 0; epoch < TRAINING_ITR; ++epoch) {
         double loss_sum = 0.0;
         printf("=======loop %d========\n", epoch);
-
+       int idx[MAX_N];
         // FIX: Transpose E once per epoch for efficiency.
         struct matrix *ET = transpose(E); // [D1 x V]
 
-        for (int n = 0; n < MAX_N; ++n) {
+        shuffle_idx(idx, MAX_N);
+        srand((unsigned)time(NULL));
+        for (int t = 0; t < MAX_N; ++t) {
             // --------- Encode one sample ---------
+            int n = rand()%(MAX_N+1);//idx[t];
             encode_input_inplace(x, n);
             target_one_hot_inplace(y, n);
 
@@ -126,7 +142,7 @@ int main(void) {
             }
 
             // loss (cross-entropy)
-            double L = 0.0, eps = 1e-12;
+            double L = 0.0, eps = 1e-2;
             for (int c = 0; c < CLASS_COUNT; ++c) {
                 if (y->grid[c] > 0.0) L -= log(probs->grid[c] + eps);
             }

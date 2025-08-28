@@ -159,30 +159,50 @@ void Sigmoid(struct matrix *m){
     }
 }
 
+void softmax_rows(const double *X, double *Y, size_t rows, size_t cols) {
+    for (size_t r = 0; r < rows; ++r) {
+        const double *x = X + r * cols;
+        double *y = Y + r * cols;
+
+        double m = -INFINITY;
+        for (size_t c = 0; c < cols; ++c) if (x[c] > m) m = x[c];
+        if (!isfinite(m)) {
+            double v = 1.0f / (double)cols;
+            for (size_t c = 0; c < cols; ++c) y[c] = v;
+            continue;
+        }
+
+        float sum = 0.0f;
+        for (size_t c = 0; c < cols; ++c) { y[c] = expf(x[c] - m); sum += y[c]; }
+        float inv = (sum == 0.0f) ? (1.0f / (float)cols) : (1.0f / sum);
+        for (size_t c = 0; c < cols; ++c) y[c] = (sum == 0.0f) ? inv : y[c] * inv;
+    }
+}
+
+
 // Example of a numerically stable Softmax
 void Softmax(struct matrix *m) {
     // Find the maximum value in the matrix (logits)
-    int length = m->height * m->width;
-    for(int j =0;j<length;j=j+m->height){
-        double max_val = 0.0;
-        for (int i = 1; i < m->width; i++) {
-            if (m->grid[i+j] > max_val) {
-                max_val = m->grid[i+j];
+        int length = m->width * m->height;
+        double max_val = m->grid[0];
+        for (int i = 1; i < length; i++) {
+            if (m->grid[i] > max_val) {
+                max_val = m->grid[i];
             }
         }
 
         // Subtract max for stability, then exponentiate and sum
         double sum = 0.0;
-        for (int i = 0; i < m->width; i++) {
-            m->grid[i+j] = exp(m->grid[i+j] - max_val);
-            sum += m->grid[i+j];
+        for (int i = 0; i < length; i++) {
+            m->grid[i] = exp(m->grid[i] - max_val);
+            sum += m->grid[i];
         }
 
         // Normalize
-        for (int i = 0; i < m->width; i++) {
-            m->grid[i+j] /= sum;
+        for (int i = 0; i < length; i++) {
+            m->grid[i] /= sum;
         }
-    }
+
 }
 
 /*void Softmax(struct matrix *m) {
