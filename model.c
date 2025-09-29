@@ -107,6 +107,9 @@ int main(void) {
         double loss_sum = 0.0;
         printf("=======loop %d========\n", epoch);
        int idx[MAX_N];
+        for (int i = 0; i < MAX_N; ++i) {
+            idx[i] = i;
+        }
         // FIX: Transpose E once per epoch for efficiency.
         struct matrix *ET = transpose(E); // [D1 x V]
 
@@ -114,7 +117,8 @@ int main(void) {
         srand((unsigned)time(NULL));
         for (int t = 0; t < MAX_N; ++t) {
             // --------- Encode one sample ---------
-            int n = rand()%(MAX_N+1);//idx[t];
+            //int n = rand()%(MAX_N+1);//idx[t];
+            int n = idx[t];
             encode_input_inplace(x, n);
             target_one_hot_inplace(y, n);
 
@@ -134,8 +138,8 @@ int main(void) {
             add_inplace(logits, b2);             // +b2
 
             // probs = softmax(logits) (in-place)
-            Softmax(logits);
-            struct matrix *probs = logits; // Alias for clarity
+            struct matrix *probs = matrix_init(logits->height,logits->width); // Alias for clarity
+            softmax_rows(logits->grid,probs->grid,1,4);
             if(epoch+1 == TRAINING_ITR){
                 printf("guess for %d\n",n);
                 print_matrix(probs);
@@ -212,6 +216,7 @@ int main(void) {
             destroy_matrix(h_emb);
             destroy_matrix(a1);
             destroy_matrix(logits); // also frees 'probs'
+            destroy_matrix(probs);
             destroy_matrix(dW2);
             destroy_matrix(da1);
             destroy_matrix(dW1);
