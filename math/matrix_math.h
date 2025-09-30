@@ -137,8 +137,14 @@ void randomize(struct matrix *m){
         srand((unsigned)time(NULL));
         seeded = 1;
     }
+/*
+    double fan_in = (double)(m->width > 0 ? m->width : 1);
+    double fan_out = (double)(m->height > 0 ? m->height : 1);
+    double limit = sqrt(6.0 / (fan_in + fan_out));
+ */
     for(int i =0; i<m->width*m->height;++i){
-        m->grid[i] = (double)rand()/RAND_MAX;
+        double r = (double)rand() / (double)RAND_MAX; // [0,1)
+        m->grid[i] = (r * 2.0 - 1.0) * limit;        // [-limit, limit]
     }
 }
 
