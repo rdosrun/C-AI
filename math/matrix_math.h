@@ -132,9 +132,17 @@ void destroy_matrix(struct matrix *m){
 }
 
 void randomize(struct matrix *m){
-    srand(time(NULL));
+    static int seeded = 0;
+    if (!seeded) {
+        srand((unsigned)time(NULL));
+        seeded = 1;
+    }
+    double fan_in = (double)(m->width > 0 ? m->width : 1);
+    double fan_out = (double)(m->height > 0 ? m->height : 1);
+    double limit = sqrt(6.0 / (fan_in + fan_out));
     for(int i =0; i<m->width*m->height;++i){
-        m->grid[i] = (double)rand()/RAND_MAX;
+        double r = (double)rand() / (double)RAND_MAX; // [0,1)
+        m->grid[i] = (r * 2.0 - 1.0) * limit;        // [-limit, limit]
     }
 }
 
@@ -275,18 +283,14 @@ struct matrix * dot(struct matrix * m1, struct matrix * m2){
     struct matrix * m3 = matrix_init(height1,width2);
 
     //processing
-    double tmp =0;
-    int i =0;
-    int j =0;
-    for(i =0; i<height1*width2;++i){
-        int m1_offset = i/height1*width1;
-        int m2_offset = i%width2;
-        tmp = 0;
-        for(j =0; j<height2;++j){
-           tmp = tmp + (m1->grid[j+m1_offset]*m2->grid[(j*width2)+m2_offset]);
+    for (int r = 0; r < height1; ++r) {
+        for (int c = 0; c < width2; ++c) {
+            double tmp = 0.0;
+            for (int k = 0; k < width1; ++k) {
+                tmp += m1->grid[r * width1 + k] * m2->grid[k * width2 + c];
+            }
+            m3->grid[r * width2 + c] = tmp;
         }
-        m3->grid[i] = tmp;
-        tmp =0;
     }
     return m3;
 }
